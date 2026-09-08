@@ -606,6 +606,24 @@
     color:#0d5fa8;
   }
 
+  .checkout-btn{
+    display:block;
+    width:100%;
+    margin-top:16px;
+    padding:14px;
+    background:#0d2b4e;
+    color:#fff200;
+    border:1px solid #0d2b4e;
+    font-weight:bold;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    font-family:'Courier New', monospace;
+    font-size:14px;
+  }
+  .checkout-btn:hover{ background:#163a63; }
+  .checkout-btn:disabled{ opacity:0.6; cursor:not-allowed; }
+
   .clear-cart-btn{
     display:block;
     margin:14px auto 0 auto;
@@ -693,10 +711,11 @@
       <span>Total</span>
       <span id="cartTotal">$0.00</span>
     </div>
+    <button class="checkout-btn" id="checkoutBtn" type="button" style="display:none;">Checkout</button>
     <button class="clear-cart-btn" id="clearCartBtn" type="button" style="display:none;">Clear Cart</button>
     <div class="cart-note" id="cartNote" style="display:none;">
-      Ready to order? Head to <a href="index.html#order">How to Order</a> and email us what's in your cart —
-      just list the item names, colorways, and sizes shown above.
+      Checkout is securely handled by Stripe — you'll enter your payment and shipping details on their page,
+      then land back here once it's done.
     </div>
   </div>
 
@@ -734,12 +753,14 @@
     var totalEl = document.getElementById('cartTotal');
     var clearBtn = document.getElementById('clearCartBtn');
     var noteEl = document.getElementById('cartNote');
+    var checkoutBtn = document.getElementById('checkoutBtn');
 
     if (!cart.length) {
       itemsEl.innerHTML = '<div class="cart-empty">Your cart is empty. <a href="index.html#shop">Go pick something out</a>.</div>';
       totalRow.style.display = 'none';
       clearBtn.style.display = 'none';
       noteEl.style.display = 'none';
+      checkoutBtn.style.display = 'none';
       return;
     }
 
@@ -769,6 +790,7 @@
     totalRow.style.display = 'flex';
     clearBtn.style.display = 'block';
     noteEl.style.display = 'block';
+    checkoutBtn.style.display = 'block';
 
     itemsEl.querySelectorAll('button[data-action]').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -796,6 +818,39 @@
         saveCart([]);
         renderCart();
       }
+    });
+  }
+
+  var CHECKOUT_WORKER_URL = 'https://ripone-checkout.iankeaner.workers.dev';
+
+  var checkoutBtn = document.getElementById('checkoutBtn');
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', function() {
+      var cart = getCart();
+      if (!cart.length) return;
+
+      checkoutBtn.disabled = true;
+      checkoutBtn.textContent = 'Redirecting to checkout…';
+
+      fetch(CHECKOUT_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cart)
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            throw new Error(data.error || 'No checkout URL returned');
+          }
+        })
+        .catch(function(err) {
+          console.error('Checkout failed:', err);
+          alert('Something went wrong starting checkout. Please try again in a moment.');
+          checkoutBtn.disabled = false;
+          checkoutBtn.textContent = 'Checkout';
+        });
     });
   }
 
