@@ -372,6 +372,7 @@
   <div class="nav">
     <a href="#shop">Shop</a>
     <a href="#fact">Fact of the Day</a>
+    <a href="#join">Join the List</a>
     <a href="#links">Links</a>
     <a href="#guestbook">Guestbook</a>
     <a href="#contact">Contact</a>
@@ -422,6 +423,26 @@
     Today's average banner ad gets under 1%.
   </div>
 
+  <div class="seclabel" id="join">Join the List</div>
+  <div class="infobox" style="text-align:center;">
+    <p style="margin-top:0;">Get an email when a new design drops, plus the occasional deal or random nonsense.<br>No spam, unsubscribe anytime.</p>
+    <form id="signupForm" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px;">
+      <input
+        type="email"
+        id="signupEmail"
+        placeholder="your@email.com"
+        required
+        style="flex:1; min-width:180px; max-width:260px; padding:8px 10px; border:1px solid #0d2b4e; background:rgba(255,255,255,0.6); color:#0d2b4e; font-family:'Courier New', monospace; font-size:13px;"
+      >
+      <button
+        type="submit"
+        id="signupSubmit"
+        style="padding:8px 18px; border:1px solid #0d2b4e; background:#0d2b4e; color:#fff200; font-weight:bold; letter-spacing:1px; text-transform:uppercase; cursor:pointer; font-family:'Courier New', monospace; font-size:12px;"
+      >Subscribe</button>
+    </form>
+    <div id="signupMessage" style="margin-top:10px; font-size:12px; font-weight:bold;"></div>
+  </div>
+
   <div class="seclabel" id="links">Friend Sites</div>
   <div class="linkgrid">
     <a href="https://plaza.one/" target="_blank" rel="noopener">PLAZA.ONE</a>
@@ -440,7 +461,7 @@
 
   <div class="seclabel" id="contact">Contact</div>
   <div class="infobox" style="text-align:center">
-    <a href="mailto:orders@ripone.com">orders@riponeshop.com</a><br><br>
+    <a href="mailto:orders@riponeshop.com">orders@riponeshop.com</a><br><br>
     <span class="blink">EMAIL US ANYTIME</span>
   </div>
 
@@ -597,6 +618,96 @@
 
   if (signBtn) signBtn.addEventListener('click', signGuestbook);
   loadGuestbook();
+</script>
+
+<script>
+  // ===== EMAIL SIGNUP (Klaviyo) =====
+  // Replace these with your real values from Klaviyo:
+  // Settings -> API Keys for the public key, and your List's Settings page for the List ID.
+  var KLAVIYO_PUBLIC_KEY = 'WYzE7M';
+  var KLAVIYO_LIST_ID = 'SNuQyK';
+
+  var signupForm = document.getElementById('signupForm');
+  var signupEmail = document.getElementById('signupEmail');
+  var signupSubmit = document.getElementById('signupSubmit');
+  var signupMessage = document.getElementById('signupMessage');
+
+  if (signupForm) {
+    signupForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var email = signupEmail.value.trim();
+      if (!email) return;
+
+      if (KLAVIYO_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+        signupMessage.style.color = '#c2410c';
+        signupMessage.textContent = 'Email signup isn\'t set up yet — check back soon.';
+        return;
+      }
+
+      signupSubmit.disabled = true;
+      signupSubmit.textContent = 'Joining…';
+
+      var url = 'https://a.klaviyo.com/client/subscriptions/?company_id=' + KLAVIYO_PUBLIC_KEY;
+      var body = {
+        data: {
+          type: 'subscription',
+          attributes: {
+            profile: {
+              data: {
+                type: 'profile',
+                attributes: {
+                  email: email,
+                  subscriptions: {
+                    email: {
+                      marketing: {
+                        consent: 'SUBSCRIBED'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          relationships: {
+            list: {
+              data: {
+                type: 'list',
+                id: KLAVIYO_LIST_ID
+              }
+            }
+          }
+        }
+      };
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'revision': '2026-07-15'
+        },
+        body: JSON.stringify(body)
+      })
+        .then(function(res) {
+          if (res.status === 202 || res.ok) {
+            signupMessage.style.color = '#0d5fa8';
+            signupMessage.textContent = 'You\'re in! Check your email to confirm.';
+            signupForm.reset();
+          } else {
+            throw new Error('Signup failed');
+          }
+        })
+        .catch(function(err) {
+          console.error('Klaviyo signup failed:', err);
+          signupMessage.style.color = '#c2410c';
+          signupMessage.textContent = 'Something went wrong — please try again.';
+        })
+        .finally(function() {
+          signupSubmit.disabled = false;
+          signupSubmit.textContent = 'Subscribe';
+        });
+    });
+  }
 </script>
 </body>
 </html>
